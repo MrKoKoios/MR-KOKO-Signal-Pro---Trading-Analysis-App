@@ -5,7 +5,7 @@ import android.content.Intent
 import android.os.IBinder
 import android.util.Log
 
-class OverlayService : Service() {
+class MRKokoScanService : Service() {
 
     companion object {
         const val ACTION_START_SCAN =
@@ -14,7 +14,7 @@ class OverlayService : Service() {
         const val ACTION_STOP_SCAN =
             "com.mrkoko.signalpro.STOP_SCAN"
 
-        private const val TAG = "MRKOKO_OVERLAY"
+        private const val TAG = "MR_KOKO_SCAN"
     }
 
     override fun onStartCommand(
@@ -26,11 +26,17 @@ class OverlayService : Service() {
         when (intent?.action) {
 
             ACTION_START_SCAN -> {
-                Log.d(TAG, "Screen scan started")
+                MarketAccessibilityService.instance
+                    ?.startScan()
+
+                Log.d(TAG, "SCAN STARTED")
             }
 
             ACTION_STOP_SCAN -> {
-                Log.d(TAG, "Screen scan stopped")
+                MarketAccessibilityService.instance
+                    ?.stopScan()
+
+                Log.d(TAG, "SCAN STOPPED")
             }
         }
 
