@@ -1,1 +1,2 @@
-# MR-KOKO-Signal-Pro---Trading-Analysis-App
+# MR KOKO Signal Pro
+Flutter trading signal app for Android.
