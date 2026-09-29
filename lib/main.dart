@@ -24,12 +24,6 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
   ]);
 
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-    ),
-  );
-
   runApp(const MrKokoApp());
 }
 
@@ -42,10 +36,7 @@ class MrKokoApp extends StatelessWidget {
       title: 'MR KOKO Signal Pro',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF00FF88),
-          brightness: Brightness.dark,
-        ),
+        brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF020408),
         useMaterial3: true,
       ),
