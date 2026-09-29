@@ -8,7 +8,8 @@ class MarketAccessibilityService :
     AccessibilityService() {
 
     companion object {
-        private const val TAG = "MRKOKO_ACCESSIBILITY"
+        private const val TAG =
+            "MR_KOKO_ACCESSIBILITY"
 
         var instance:
             MarketAccessibilityService? = null
@@ -23,35 +24,29 @@ class MarketAccessibilityService :
 
         Log.d(
             TAG,
-            "MR KOKO Accessibility Service connected"
+            "MR KOKO Accessibility connected"
         )
     }
 
     override fun onAccessibilityEvent(
         event: AccessibilityEvent?
     ) {
-
-        if (!scanning) {
-            return
-        }
-
-        if (event == null) {
-            return
-        }
+        if (!scanning) return
+        if (event == null) return
 
         Log.d(
             TAG,
-            "Screen event received: ${event.eventType}"
+            "Screen event: ${event.eventType}"
         )
     }
 
     override fun onInterrupt() {
+        scanning = false
+
         Log.d(
             TAG,
-            "Accessibility service interrupted"
+            "Accessibility interrupted"
         )
-
-        scanning = false
     }
 
     override fun onDestroy() {
