@@ -16,25 +16,37 @@ class MainActivity : FlutterActivity() {
             CHANNEL
         ).setMethodCallHandler { call, result ->
             when (call.method) {
+
                 "startScan" -> {
                     val svc = MarketAccessibilityService.getInstance()
+
                     if (svc != null) {
-                        svc.startChartScan()
+                        svc.startScan()
                         result.success(true)
                     } else {
-                        result.error("NO_SERVICE",
-                            "Accessibility service not connected", null)
+                        result.error(
+                            "NO_SERVICE",
+                            "Accessibility service not connected",
+                            null
+                        )
                     }
                 }
+
                 "stopScan" -> {
                     val svc = MarketAccessibilityService.getInstance()
-                    svc?.stopChartScan()
+                    svc?.stopScan()
                     result.success(true)
                 }
+
                 "isConnected" -> {
-                    result.success(MarketAccessibilityService.getInstance() != null)
+                    result.success(
+                        MarketAccessibilityService.getInstance() != null
+                    )
                 }
-                else -> result.notImplemented()
+
+                else -> {
+                    result.notImplemented()
+                }
             }
         }
     }
