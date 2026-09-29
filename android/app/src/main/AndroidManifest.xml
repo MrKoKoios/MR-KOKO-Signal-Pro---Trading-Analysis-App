@@ -1,18 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Overlay permission -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
-    <!-- Foreground service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
-    <!-- Accessibility -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE"/>
 
-    <!-- Internet -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
-    <!-- Keep CPU awake -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <application
@@ -21,7 +18,6 @@
         android:icon="@drawable/app_logo"
         android:allowBackup="false">
 
-        <!-- Main Flutter Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -42,16 +38,19 @@
 
         </activity>
 
-        <!-- ================================================= -->
-        <!-- FLUTTER OVERLAY WINDOW SERVICE                     -->
-        <!-- ================================================= -->
+        <!-- Flutter Overlay Window -->
         <service
             android:name="flutter.overlay.window.flutter_overlay_window.OverlayService"
-            android:exported="false"/>
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
 
-        <!-- ================================================= -->
-        <!-- MR KOKO ACCESSIBILITY SERVICE                      -->
-        <!-- ================================================= -->
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="MR KOKO floating trading analysis overlay"/>
+
+        </service>
+
+        <!-- MR KOKO Accessibility Service -->
         <service
             android:name="com.mrkoko.signalpro.MarketAccessibilityService"
             android:exported="true"
@@ -68,7 +67,6 @@
 
         </service>
 
-        <!-- Flutter embedding -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2"/>
