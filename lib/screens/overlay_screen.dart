@@ -8,7 +8,7 @@ import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import '../engine/signal_engine.dart';
 import '../services/database_service.dart';
 
-const _channel =
+const MethodChannel _channel =
     MethodChannel('com.mrkoko.signalpro/accessibility');
 
 enum OverlayState {
@@ -32,54 +32,47 @@ class _OverlayScreenState extends State<OverlayScreen>
   final SignalEngine _engine = SignalEngine();
   final DatabaseService _db = DatabaseService();
 
-  late AnimationController _scanController;
   late AnimationController _pulseController;
-
-  late Animation<double> _scanAnim;
   late Animation<double> _pulseAnim;
 
-  Timer? _logTimer;
+  Timer? _timer;
 
   int _frameCount = 0;
-  int _logIdx = 0;
+  int _logIndex = 0;
 
-  String _logMsg = 'Initialising scanner...';
+  String _message = 'Tap the icon to start';
 
   SignalResult? _lastSignal;
 
   String _selectedTF = '1M';
 
-  bool _showTFPicker = false;
+  bool _showTimeframes = false;
 
-  static const Color kGreen = Color(0xFF00FF88);
-  static const Color kRed = Color(0xFFFF2244);
-  static const Color kGold = Color(0xFFFFD700);
-  static const Color kBg = Color(0xFF020408);
-  static const Color kPanel = Color(0xFF080D16);
+  static const Color green = Color(0xFF00FF88);
+  static const Color red = Color(0xFFFF2244);
+  static const Color gold = Color(0xFFFFD700);
+  static const Color background = Color(0xFF020408);
 
-  final List<String> _logs = [
+  final List<String> _messages = [
     'Scanning market structure...',
     'SMC: Order Block detected',
     'ICT: FVG identified',
-    'BOS confirmed on chart',
-    'OTC AI pattern: reversal zone',
-    'Support level mapped',
-    'Liquidity sweep above high',
-    'Price Action: Engulfing forming',
-    'CHoCH detected — shift in structure',
-    'OB Mitigation in progress...',
-    'Demand zone: accumulation',
-    'Multi-TF confluence: strong',
-    'OTC volatility scan...',
-    'Smart money footprint found',
-    'Fibonacci 61.8% touch confirmed',
+    'BOS confirmed',
+    'OTC pattern scanning...',
+    'Support level detected',
+    'Liquidity sweep detected',
+    'Price Action scanning...',
+    'CHoCH detected',
+    'Demand zone scanning...',
+    'Multi-TF confluence checking...',
+    'Smart money footprint scanning...',
   ];
 
-  int get _screenW =>
+  int get _screenWidth =>
       (ui.window.physicalSize.width / ui.window.devicePixelRatio)
           .toInt();
 
-  int get _screenH =>
+  int get _screenHeight =>
       (ui.window.physicalSize.height / ui.window.devicePixelRatio)
           .toInt();
 
@@ -87,23 +80,13 @@ class _OverlayScreenState extends State<OverlayScreen>
   void initState() {
     super.initState();
 
-    _scanController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    )..repeat();
-
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
 
-    _scanAnim = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(_scanController);
-
     _pulseAnim = Tween<double>(
-      begin: 0.7,
+      begin: 0.90,
       end: 1.0,
     ).animate(_pulseController);
 
@@ -112,100 +95,136 @@ class _OverlayScreenState extends State<OverlayScreen>
 
   @override
   void dispose() {
-    _scanController.dispose();
+    _timer?.cancel();
     _pulseController.dispose();
-    _logTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _expand() async {
+  Future<void> _openScanner() async {
     try {
-      setState(() {
-        _state = OverlayState.scanning;
-      });
-
       await FlutterOverlayWindow.resizeOverlay(
-        _screenW,
-        _screenH,
+        _screenWidth,
+        _screenHeight,
         true,
       );
 
-      await _startScan();
+      if (!mounted) return;
+
+      setState(() {
+        _state = OverlayState.scanning;
+        _frameCount = 0;
+        _message = 'Starting scanner...';
+      });
+
+      await _startScanning();
     } catch (e) {
-      debugPrint('Expand error: $e');
+      debugPrint('OPEN SCANNER ERROR: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _message = 'Scanner error';
+      });
     }
   }
 
-  Future<void> _startScan() async {
-    _frameCount = 0;
-    _logIdx = 0;
+  Future<void> _startScanning() async {
+    _timer?.cancel();
 
     _engine.clear();
 
     try {
       await _channel.invokeMethod('startScan');
     } catch (e) {
-      debugPrint('Accessibility not connected: $e');
+      debugPrint('START SCAN CHANNEL ERROR: $e');
     }
 
-    _logTimer?.cancel();
-
-    _logTimer = Timer.periodic(
+    _timer = Timer.periodic(
       const Duration(milliseconds: 900),
       (_) {
         if (!mounted) return;
 
         setState(() {
-          _logMsg = _logs[_logIdx % _logs.length];
-
-          _logIdx++;
           _frameCount++;
+          _message =
+              _messages[_logIndex % _messages.length];
+          _logIndex++;
         });
       },
     );
   }
 
-  Future<void> _stopScan() async {
-    _logTimer?.cancel();
+  Future<void> _stopScanning() async {
+    _timer?.cancel();
 
     try {
       await _channel.invokeMethod('stopScan');
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('STOP SCAN CHANNEL ERROR: $e');
+    }
 
     if (!mounted) return;
 
     setState(() {
       _state = OverlayState.stopped;
-      _logMsg =
-          '✓ Scan complete — $_frameCount frames analysed';
+      _message =
+          'Scan complete — $_frameCount frames analysed';
     });
   }
 
-  void _getSignal() {
-    if (_showTFPicker) return;
+  void _showSignalPicker() {
+    if (_state != OverlayState.stopped) return;
 
     setState(() {
-      _showTFPicker = true;
+      _showTimeframes = true;
     });
   }
 
-  void _pickTF(String tf) {
-    _showTFPicker = false;
+  void _generateSignal(String timeframe) {
+    _showTimeframes = false;
 
-    final result = _engine.generateSignal(tf);
+    try {
+      final result =
+          _engine.generateSignal(timeframe);
 
-    _lastSignal = result;
+      _lastSignal = result;
 
-    _db.saveSignal(result);
+      _db.saveSignal(result);
+
+      if (!mounted) return;
+
+      setState(() {
+        _selectedTF = timeframe;
+        _state = OverlayState.signal;
+      });
+    } catch (e) {
+      debugPrint('SIGNAL ERROR: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _message = 'Signal generation failed';
+      });
+    }
+  }
+
+  Future<void> _reset() async {
+    _timer?.cancel();
+
+    _engine.clear();
 
     setState(() {
-      _state = OverlayState.signal;
-      _selectedTF = tf;
+      _showTimeframes = false;
+      _frameCount = 0;
+      _state = OverlayState.scanning;
+      _message = 'Restarting scanner...';
     });
+
+    await _startScanning();
   }
 
-  Future<void> _collapse() async {
-    _logTimer?.cancel();
+  Future<void> _closePanel() async {
+    _timer?.cancel();
 
     try {
       await _channel.invokeMethod('stopScan');
@@ -218,29 +237,16 @@ class _OverlayScreenState extends State<OverlayScreen>
         true,
       );
     } catch (e) {
-      debugPrint('Collapse error: $e');
+      debugPrint('CLOSE PANEL ERROR: $e');
     }
 
     if (!mounted) return;
 
     setState(() {
+      _showTimeframes = false;
       _state = OverlayState.icon;
+      _message = 'Tap the icon to start';
     });
-  }
-
-  Future<void> _reset() async {
-    _logTimer?.cancel();
-
-    _engine.clear();
-
-    _frameCount = 0;
-    _showTFPicker = false;
-
-    setState(() {
-      _state = OverlayState.scanning;
-    });
-
-    await _startScan();
   }
 
   @override
@@ -248,29 +254,32 @@ class _OverlayScreenState extends State<OverlayScreen>
     return Material(
       color: Colors.transparent,
       child: _state == OverlayState.icon
-          ? _buildIcon()
-          : _buildPanel(),
+          ? _buildFloatingIcon()
+          : _buildScannerPanel(),
     );
   }
 
-  Widget _buildIcon() {
+  Widget _buildFloatingIcon() {
     return GestureDetector(
-      onTap: _expand,
+      behavior: HitTestBehavior.opaque,
+      onTap: _openScanner,
       child: ScaleTransition(
         scale: _pulseAnim,
         child: Container(
-          width: 64,
-          height: 64,
+          width: 68,
+          height: 68,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
+            color: const Color(0xFF050A10),
             border: Border.all(
-              color: kGreen,
+              color: green,
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: kGreen.withOpacity(.5),
-                blurRadius: 16,
+                color: green.withOpacity(.55),
+                blurRadius: 18,
+                spreadRadius: 2,
               ),
             ],
           ),
@@ -281,8 +290,8 @@ class _OverlayScreenState extends State<OverlayScreen>
               errorBuilder: (_, __, ___) {
                 return const Icon(
                   Icons.bolt,
-                  color: kGreen,
-                  size: 30,
+                  color: green,
+                  size: 32,
                 );
               },
             ),
@@ -292,31 +301,28 @@ class _OverlayScreenState extends State<OverlayScreen>
     );
   }
 
-  Widget _buildPanel() {
+  Widget _buildScannerPanel() {
     return Container(
-      color: kBg,
+      color: background,
       child: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
+            _header(),
             Expanded(
-              child: _buildScanArea(),
+              child: _scanArea(),
             ),
-            _buildStats(),
-            _buildButtons(),
-            if (_showTFPicker) _buildTFPicker(),
+            _statusBar(),
+            _buttons(),
+            if (_showTimeframes) _timeframePicker(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _header() {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.all(10),
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(
@@ -326,73 +332,54 @@ class _OverlayScreenState extends State<OverlayScreen>
       ),
       child: Row(
         children: [
-          _logo(44),
+          _logo(42),
           const SizedBox(width: 10),
-          Expanded(
+          const Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'MR KOKO',
                   style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
                     color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                     letterSpacing: 2,
                   ),
                 ),
-                const Text(
-                  'SIGNAL PRO · SCREEN SCAN',
+                Text(
+                  'SIGNAL PRO',
                   style: TextStyle(
-                    fontSize: 9,
                     color: Colors.white38,
+                    fontSize: 9,
                     letterSpacing: 2,
                   ),
                 ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 4,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color:
-                    _state == OverlayState.scanning
-                        ? kGreen
-                        : Colors.white24,
-              ),
-            ),
-            child: Text(
-              _state == OverlayState.scanning
-                  ? 'LIVE'
-                  : _state == OverlayState.stopped
-                      ? 'READY'
-                      : _state == OverlayState.signal
-                          ? 'SIGNAL'
-                          : 'IDLE',
-              style: TextStyle(
-                fontSize: 9,
-                letterSpacing: 1,
-                color:
-                    _state == OverlayState.scanning
-                        ? kGreen
-                        : Colors.white38,
-                fontWeight: FontWeight.bold,
-              ),
+          Text(
+            _state == OverlayState.scanning
+                ? 'LIVE'
+                : _state == OverlayState.stopped
+                    ? 'READY'
+                    : 'SIGNAL',
+            style: TextStyle(
+              color:
+                  _state == OverlayState.scanning
+                      ? green
+                      : gold,
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           GestureDetector(
-            onTap: _collapse,
+            onTap: _closePanel,
             child: const Icon(
               Icons.close,
-              color: Colors.white38,
-              size: 20,
+              color: Colors.white54,
             ),
           ),
         ],
@@ -400,62 +387,94 @@ class _OverlayScreenState extends State<OverlayScreen>
     );
   }
 
-  Widget _buildScanArea() {
+  Widget _scanArea() {
     return Stack(
       children: [
         CustomPaint(
           painter: _GridPainter(),
           child: const SizedBox.expand(),
         ),
-        if (_state == OverlayState.scanning)
-          AnimatedBuilder(
-            animation: _scanAnim,
-            builder: (ctx, _) {
-              final width =
-                  MediaQuery.of(ctx).size.width;
 
-              return Positioned(
-                left: _scanAnim.value * (width - 6),
-                top: 0,
-                bottom: 0,
-                child: Container(
-                  width: 4,
-                  decoration: BoxDecoration(
-                    color: kGreen,
-                    boxShadow: [
-                      BoxShadow(
-                        color: kGreen.withOpacity(.8),
-                        blurRadius: 18,
-                      ),
-                    ],
+        if (_state == OverlayState.scanning)
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.radar,
+                  color: green,
+                  size: 70,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'ANALYSING',
+                  style: TextStyle(
+                    color: green,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 3,
                   ),
                 ),
-              );
-            },
+                const SizedBox(height: 8),
+                Text(
+                  '$_frameCount frames',
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  _message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
           ),
+
+        if (_state == OverlayState.stopped)
+          const Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.check_circle_outline,
+                  color: green,
+                  size: 70,
+                ),
+                SizedBox(height: 15),
+                Text(
+                  'SCAN COMPLETE',
+                  style: TextStyle(
+                    color: green,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
         if (_state == OverlayState.signal &&
             _lastSignal != null)
-          _buildSignalOverlay(),
-        ..._corners(),
+          _signalView(),
+
         Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 6,
-            ),
-            color: Colors.black87,
-            child: Text(
-              '[ ${_frameCount * 3} frames ] $_logMsg',
-              style: const TextStyle(
-                fontSize: 10,
-                color: kGreen,
-                letterSpacing: 1,
-                fontFamily: 'monospace',
-              ),
-              overflow: TextOverflow.ellipsis,
+          left: 10,
+          right: 10,
+          bottom: 10,
+          child: Text(
+            _message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: green,
+              fontSize: 10,
+              fontFamily: 'monospace',
             ),
           ),
         ),
@@ -463,204 +482,148 @@ class _OverlayScreenState extends State<OverlayScreen>
     );
   }
 
-  Widget _buildSignalOverlay() {
+  Widget _signalView() {
     final signal = _lastSignal!;
+
     final isBuy =
         signal.direction == SignalDirection.buy;
 
-    final color = isBuy ? kGreen : kRed;
+    final color = isBuy ? green : red;
 
-    return Container(
-      color: Colors.black.withOpacity(.92),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              isBuy ? 'BUY' : 'SELL',
-              style: TextStyle(
-                fontSize: 52,
-                fontWeight: FontWeight.w900,
-                color: color,
-                letterSpacing: 4,
-              ),
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            isBuy ? 'BUY' : 'SELL',
+            style: TextStyle(
+              color: color,
+              fontSize: 50,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 5,
             ),
-            const SizedBox(height: 6),
-            Text(
-              '$_selectedTF CANDLE',
-              style: const TextStyle(
-                fontSize: 13,
-                color: kGold,
-                letterSpacing: 2,
-              ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            '$_selectedTF CANDLE',
+            style: const TextStyle(
+              color: gold,
+              fontSize: 14,
+              letterSpacing: 2,
             ),
-            const SizedBox(height: 10),
-            Text(
-              'CONFIDENCE: ${signal.confidence}%',
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.white70,
-              ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'CONFIDENCE: ${signal.confidence}%',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
             ),
-            const SizedBox(height: 6),
-            Text(
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(
+              horizontal: 25,
+            ),
+            child: Text(
               signal.rule,
               textAlign: TextAlign.center,
               style: const TextStyle(
+                color: Colors.white54,
                 fontSize: 11,
-                color: Colors.white38,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              '✓ SAVED TO HISTORY',
-              style: TextStyle(
-                fontSize: 10,
-                color: kGreen,
-                letterSpacing: 1,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStats() {
-    const labels = [
-      'SMC',
-      'ICT',
-      'PA',
-      'OTC',
-      'S&R',
-    ];
-
-    return SizedBox(
-      height: 48,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 6,
-        ),
-        itemCount: labels.length,
-        itemBuilder: (_, index) {
-          return Container(
-            margin: const EdgeInsets.only(
-              right: 6,
-              top: 4,
-              bottom: 4,
-            ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: kGreen,
-              ),
-              color: kGreen.withOpacity(.07),
-            ),
-            child: Column(
-              mainAxisAlignment:
-                  MainAxisAlignment.center,
-              children: [
-                Text(
-                  labels[index],
-                  style: const TextStyle(
-                    fontSize: 9,
-                    color: kGreen,
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  index.isEven ? 'BULL' : 'BEAR',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: kGreen,
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildButtons() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        6,
-        0,
-        6,
-        8,
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _btn(
-                  '▶ ANALYSE',
-                  kGreen,
-                  Colors.black,
-                  _state == OverlayState.icon ||
-                          _state == OverlayState.signal
-                      ? _reset
-                      : null,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: _btn(
-                  '■ STOP',
-                  kRed,
-                  Colors.white,
-                  _state == OverlayState.scanning
-                      ? _stopScan
-                      : null,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          _btn(
-            '⚡ GET SIGNAL',
-            kGold,
-            Colors.black,
-            _state == OverlayState.stopped
-                ? _getSignal
-                : null,
-          ),
-          const SizedBox(height: 4),
-          _btn(
-            '↺ RESET',
-            Colors.transparent,
-            Colors.white38,
-            _reset,
-            border: const Color(0xFF152030),
           ),
         ],
       ),
     );
   }
 
-  Widget _btn(
-    String label,
-    Color bg,
-    Color fg,
+  Widget _statusBar() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 8,
+      ),
+      color: const Color(0xFF080D16),
+      child: Text(
+        'FRAMES: $_frameCount',
+        style: const TextStyle(
+          color: green,
+          fontSize: 10,
+          fontFamily: 'monospace',
+        ),
+      ),
+    );
+  }
+
+  Widget _buttons() {
+    return Padding(
+      padding: const EdgeInsets.all(7),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _button(
+                  '▶ ANALYSE',
+                  green,
+                  Colors.black,
+                  _state == OverlayState.signal ||
+                          _state == OverlayState.icon
+                      ? _reset
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _button(
+                  '■ STOP',
+                  red,
+                  Colors.white,
+                  _state == OverlayState.scanning
+                      ? _stopScanning
+                      : null,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          _button(
+            '⚡ GET SIGNAL',
+            gold,
+            Colors.black,
+            _state == OverlayState.stopped
+                ? _showSignalPicker
+                : null,
+          ),
+          const SizedBox(height: 5),
+          _button(
+            '↺ RESET',
+            Colors.transparent,
+            Colors.white54,
+            _reset,
+            border: const Color(0xFF243040),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _button(
+    String text,
+    Color backgroundColor,
+    Color textColor,
     VoidCallback? onTap, {
     Color? border,
   }) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: AnimatedOpacity(
-        duration: const Duration(
-          milliseconds: 200,
-        ),
-        opacity: onTap == null ? 0.3 : 1.0,
+      child: Opacity(
+        opacity: onTap == null ? .3 : 1,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(
@@ -668,22 +631,22 @@ class _OverlayScreenState extends State<OverlayScreen>
           ),
           decoration: BoxDecoration(
             color:
-                bg == Colors.transparent
+                backgroundColor == Colors.transparent
                     ? Colors.transparent
-                    : bg,
-            borderRadius: BorderRadius.circular(10),
+                    : backgroundColor,
+            borderRadius: BorderRadius.circular(9),
             border: Border.all(
-              color: border ?? bg,
+              color: border ?? backgroundColor,
             ),
           ),
           child: Center(
             child: Text(
-              label,
+              text,
               style: TextStyle(
+                color: textColor,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: fg,
-                letterSpacing: 1.5,
+                letterSpacing: 1.4,
               ),
             ),
           ),
@@ -692,72 +655,64 @@ class _OverlayScreenState extends State<OverlayScreen>
     );
   }
 
-  Widget _buildTFPicker() {
-    final timeframes = [
-      {'tf': '5S', 'label': '5 SEC'},
-      {'tf': '15S', 'label': '15 SEC'},
-      {'tf': '20S', 'label': '20 SEC'},
-      {'tf': '1M', 'label': '1 MIN'},
-      {'tf': '5M', 'label': '5 MIN'},
-      {'tf': '30M', 'label': '30 MIN'},
+  Widget _timeframePicker() {
+    const timeframes = [
+      '5S',
+      '15S',
+      '20S',
+      '1M',
+      '5M',
+      '30M',
     ];
 
     return Container(
       color: const Color(0xFF0A1220),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(10),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
             'SELECT TIMEFRAME',
             style: TextStyle(
-              fontSize: 12,
               color: Colors.white70,
+              fontSize: 12,
               letterSpacing: 2,
-              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics:
-                const NeverScrollableScrollPhysics(),
-            gridDelegate:
-                const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 2.2,
-            ),
-            itemCount: timeframes.length,
-            itemBuilder: (_, index) {
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: timeframes.map((tf) {
               return GestureDetector(
-                onTap: () => _pickTF(
-                  timeframes[index]['tf']!,
-                ),
+                onTap: () => _generateSignal(tf),
                 child: Container(
+                  width: 85,
+                  padding:
+                      const EdgeInsets.symmetric(
+                    vertical: 11,
+                  ),
                   decoration: BoxDecoration(
+                    color:
+                        const Color(0xFF080D16),
                     borderRadius:
                         BorderRadius.circular(8),
                     border: Border.all(
-                      color: const Color(0xFF152030),
+                      color: gold,
                     ),
-                    color: kPanel,
                   ),
                   child: Center(
                     child: Text(
-                      timeframes[index]['label']!,
+                      tf,
                       style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white70,
-                        letterSpacing: 1,
+                        color: gold,
+                        fontWeight:
+                            FontWeight.bold,
                       ),
                     ),
                   ),
                 ),
               );
-            },
+            }).toList(),
           ),
         ],
       ),
@@ -771,7 +726,7 @@ class _OverlayScreenState extends State<OverlayScreen>
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: kGreen,
+          color: green,
           width: 2,
         ),
       ),
@@ -782,82 +737,9 @@ class _OverlayScreenState extends State<OverlayScreen>
           errorBuilder: (_, __, ___) {
             return const Icon(
               Icons.bolt,
-              color: kGreen,
+              color: green,
             );
           },
-        ),
-      ),
-    );
-  }
-
-  List<Widget> _corners() {
-    const size = 16.0;
-    const thickness = 2.0;
-
-    return [
-      Positioned(
-        top: 6,
-        left: 6,
-        child: _corner(
-          size,
-          thickness,
-          kGreen,
-          top: true,
-          left: true,
-        ),
-      ),
-      Positioned(
-        top: 6,
-        right: 6,
-        child: _corner(
-          size,
-          thickness,
-          kGreen,
-          top: true,
-          left: false,
-        ),
-      ),
-      Positioned(
-        bottom: 30,
-        left: 6,
-        child: _corner(
-          size,
-          thickness,
-          kGreen,
-          top: false,
-          left: true,
-        ),
-      ),
-      Positioned(
-        bottom: 30,
-        right: 6,
-        child: _corner(
-          size,
-          thickness,
-          kGreen,
-          top: false,
-          left: false,
-        ),
-      ),
-    ];
-  }
-
-  Widget _corner(
-    double size,
-    double thickness,
-    Color color, {
-    required bool top,
-    required bool left,
-  }) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _CornerPainter(
-          thickness,
-          color,
-          top: top,
-          left: left,
         ),
       ),
     );
@@ -866,22 +748,15 @@ class _OverlayScreenState extends State<OverlayScreen>
 
 class _GridPainter extends CustomPainter {
   @override
-  void paint(
-    Canvas canvas,
-    Size size,
-  ) {
+  void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color =
-          _OverlayScreenState.kGreen.withOpacity(.04)
+          _OverlayScreenState.green.withOpacity(.04)
       ..strokeWidth = 1;
 
     const step = 28.0;
 
-    for (
-      double x = 0;
-      x < size.width;
-      x += step
-    ) {
+    for (double x = 0; x < size.width; x += step) {
       canvas.drawLine(
         Offset(x, 0),
         Offset(x, size.height),
@@ -889,71 +764,13 @@ class _GridPainter extends CustomPainter {
       );
     }
 
-    for (
-      double y = 0;
-      y < size.height;
-      y += step
-    ) {
+    for (double y = 0; y < size.height; y += step) {
       canvas.drawLine(
         Offset(0, y),
         Offset(size.width, y),
         paint,
       );
     }
-  }
-
-  @override
-  bool shouldRepaint(
-    covariant CustomPainter oldDelegate,
-  ) {
-    return false;
-  }
-}
-
-class _CornerPainter extends CustomPainter {
-  final double thickness;
-  final Color color;
-  final bool top;
-  final bool left;
-
-  _CornerPainter(
-    this.thickness,
-    this.color, {
-    required this.top,
-    required this.left,
-  });
-
-  @override
-  void paint(
-    Canvas canvas,
-    Size size,
-  ) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = thickness
-      ..style = PaintingStyle.stroke;
-
-    final path = Path();
-
-    if (top && left) {
-      path.moveTo(size.width, 0);
-      path.lineTo(0, 0);
-      path.lineTo(0, size.height);
-    } else if (top && !left) {
-      path.moveTo(0, 0);
-      path.lineTo(size.width, 0);
-      path.lineTo(size.width, size.height);
-    } else if (!top && left) {
-      path.moveTo(0, 0);
-      path.lineTo(0, size.height);
-      path.lineTo(size.width, size.height);
-    } else {
-      path.moveTo(size.width, 0);
-      path.lineTo(size.width, size.height);
-      path.lineTo(0, size.height);
-    }
-
-    canvas.drawPath(path, paint);
   }
 
   @override
