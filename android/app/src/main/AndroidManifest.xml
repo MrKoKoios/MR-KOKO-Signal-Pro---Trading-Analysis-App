@@ -1,9 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Overlay permission -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+
+    <!-- Foreground service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+
+    <!-- Accessibility -->
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE"/>
+
+    <!-- Internet -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Keep CPU awake -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <application
@@ -12,6 +21,7 @@
         android:icon="@drawable/app_logo"
         android:allowBackup="false">
 
+        <!-- Main Flutter Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -32,7 +42,16 @@
 
         </activity>
 
-        <!-- Accessibility Service -->
+        <!-- ================================================= -->
+        <!-- FLUTTER OVERLAY WINDOW SERVICE                     -->
+        <!-- ================================================= -->
+        <service
+            android:name="flutter.overlay.window.flutter_overlay_window.OverlayService"
+            android:exported="false"/>
+
+        <!-- ================================================= -->
+        <!-- MR KOKO ACCESSIBILITY SERVICE                      -->
+        <!-- ================================================= -->
         <service
             android:name="com.mrkoko.signalpro.MarketAccessibilityService"
             android:exported="true"
@@ -48,11 +67,6 @@
                 android:resource="@xml/accessibility_service_config"/>
 
         </service>
-
-        <!-- Overlay Service -->
-        <service
-            android:name="com.mrkoko.signalpro.OverlayService"
-            android:exported="false"/>
 
         <!-- Flutter embedding -->
         <meta-data
