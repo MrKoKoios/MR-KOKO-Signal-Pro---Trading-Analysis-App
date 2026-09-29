@@ -4,23 +4,25 @@ import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
 import android.util.Log
 
-class MarketAccessibilityService :
-    AccessibilityService() {
+class MarketAccessibilityService : AccessibilityService() {
 
     companion object {
-        private const val TAG =
-            "MR_KOKO_ACCESSIBILITY"
+        private const val TAG = "MR_KOKO_ACCESSIBILITY"
 
-        var instance:
-            MarketAccessibilityService? = null
+        private var serviceInstance: MarketAccessibilityService? = null
 
         var scanning: Boolean = false
+
+        @JvmStatic
+        fun getInstance(): MarketAccessibilityService? {
+            return serviceInstance
+        }
     }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
 
-        instance = this
+        serviceInstance = this
 
         Log.d(
             TAG,
@@ -32,6 +34,7 @@ class MarketAccessibilityService :
         event: AccessibilityEvent?
     ) {
         if (!scanning) return
+
         if (event == null) return
 
         Log.d(
@@ -51,7 +54,7 @@ class MarketAccessibilityService :
 
     override fun onDestroy() {
         scanning = false
-        instance = null
+        serviceInstance = null
 
         super.onDestroy()
     }
