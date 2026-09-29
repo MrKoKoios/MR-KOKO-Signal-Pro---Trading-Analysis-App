@@ -26,14 +26,14 @@ class MRKokoScanService : Service() {
         when (intent?.action) {
 
             ACTION_START_SCAN -> {
-                MarketAccessibilityService.instance
+                MarketAccessibilityService.getInstance()
                     ?.startScan()
 
                 Log.d(TAG, "SCAN STARTED")
             }
 
             ACTION_STOP_SCAN -> {
-                MarketAccessibilityService.instance
+                MarketAccessibilityService.getInstance()
                     ?.stopScan()
 
                 Log.d(TAG, "SCAN STOPPED")
