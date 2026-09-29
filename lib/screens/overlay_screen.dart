@@ -76,13 +76,11 @@ class _OverlayScreenState extends State<OverlayScreen>
   ];
 
   int get _screenW =>
-      (ui.window.physicalSize.width /
-              ui.window.devicePixelRatio)
+      (ui.window.physicalSize.width / ui.window.devicePixelRatio)
           .toInt();
 
   int get _screenH =>
-      (ui.window.physicalSize.height /
-              ui.window.devicePixelRatio)
+      (ui.window.physicalSize.height / ui.window.devicePixelRatio)
           .toInt();
 
   @override
@@ -147,9 +145,7 @@ class _OverlayScreenState extends State<OverlayScreen>
     try {
       await _channel.invokeMethod('startScan');
     } catch (e) {
-      debugPrint(
-        'Accessibility not connected: $e',
-      );
+      debugPrint('Accessibility not connected: $e');
     }
 
     _logTimer?.cancel();
@@ -160,8 +156,7 @@ class _OverlayScreenState extends State<OverlayScreen>
         if (!mounted) return;
 
         setState(() {
-          _logMsg =
-              _logs[_logIdx % _logs.length];
+          _logMsg = _logs[_logIdx % _logs.length];
 
           _logIdx++;
           _frameCount++;
@@ -181,7 +176,6 @@ class _OverlayScreenState extends State<OverlayScreen>
 
     setState(() {
       _state = OverlayState.stopped;
-
       _logMsg =
           '✓ Scan complete — $_frameCount frames analysed';
     });
@@ -198,8 +192,7 @@ class _OverlayScreenState extends State<OverlayScreen>
   void _pickTF(String tf) {
     _showTFPicker = false;
 
-    final result =
-        _engine.generateSignal(tf);
+    final result = _engine.generateSignal(tf);
 
     _lastSignal = result;
 
@@ -306,17 +299,12 @@ class _OverlayScreenState extends State<OverlayScreen>
         child: Column(
           children: [
             _buildHeader(),
-
             Expanded(
               child: _buildScanArea(),
             ),
-
             _buildStats(),
-
             _buildButtons(),
-
-            if (_showTFPicker)
-              _buildTFPicker(),
+            if (_showTFPicker) _buildTFPicker(),
           ],
         ),
       ),
@@ -339,13 +327,10 @@ class _OverlayScreenState extends State<OverlayScreen>
       child: Row(
         children: [
           _logo(44),
-
           const SizedBox(width: 10),
-
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'MR KOKO',
@@ -368,51 +353,40 @@ class _OverlayScreenState extends State<OverlayScreen>
               ],
             ),
           ),
-
           Container(
-            padding:
-                const EdgeInsets.symmetric(
+            padding: const EdgeInsets.symmetric(
               horizontal: 8,
               vertical: 4,
             ),
             decoration: BoxDecoration(
-              borderRadius:
-                  BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color:
-                    _state ==
-                            OverlayState.scanning
+                    _state == OverlayState.scanning
                         ? kGreen
                         : Colors.white24,
               ),
             ),
             child: Text(
-              _state ==
-                      OverlayState.scanning
+              _state == OverlayState.scanning
                   ? 'LIVE'
-                  : _state ==
-                          OverlayState.stopped
+                  : _state == OverlayState.stopped
                       ? 'READY'
-                      : _state ==
-                              OverlayState.signal
+                      : _state == OverlayState.signal
                           ? 'SIGNAL'
                           : 'IDLE',
               style: TextStyle(
                 fontSize: 9,
                 letterSpacing: 1,
                 color:
-                    _state ==
-                            OverlayState.scanning
+                    _state == OverlayState.scanning
                         ? kGreen
                         : Colors.white38,
-                fontWeight:
-                    FontWeight.bold,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
-
           const SizedBox(width: 8),
-
           GestureDetector(
             onTap: _collapse,
             child: const Icon(
@@ -433,7 +407,6 @@ class _OverlayScreenState extends State<OverlayScreen>
           painter: _GridPainter(),
           child: const SizedBox.expand(),
         ),
-
         if (_state == OverlayState.scanning)
           AnimatedBuilder(
             animation: _scanAnim,
@@ -442,9 +415,7 @@ class _OverlayScreenState extends State<OverlayScreen>
                   MediaQuery.of(ctx).size.width;
 
               return Positioned(
-                left:
-                    _scanAnim.value *
-                        (width - 6),
+                left: _scanAnim.value * (width - 6),
                 top: 0,
                 bottom: 0,
                 child: Container(
@@ -453,8 +424,7 @@ class _OverlayScreenState extends State<OverlayScreen>
                     color: kGreen,
                     boxShadow: [
                       BoxShadow(
-                        color:
-                            kGreen.withOpacity(.8),
+                        color: kGreen.withOpacity(.8),
                         blurRadius: 18,
                       ),
                     ],
@@ -463,20 +433,16 @@ class _OverlayScreenState extends State<OverlayScreen>
               );
             },
           ),
-
         if (_state == OverlayState.signal &&
             _lastSignal != null)
           _buildSignalOverlay(),
-
         ..._corners(),
-
         Positioned(
           bottom: 0,
           left: 0,
           right: 0,
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(
+            padding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 6,
             ),
@@ -489,8 +455,7 @@ class _OverlayScreenState extends State<OverlayScreen>
                 letterSpacing: 1,
                 fontFamily: 'monospace',
               ),
-              overflow:
-                  TextOverflow.ellipsis,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ),
@@ -500,13 +465,10 @@ class _OverlayScreenState extends State<OverlayScreen>
 
   Widget _buildSignalOverlay() {
     final signal = _lastSignal!;
-
     final isBuy =
-        signal.direction ==
-            SignalDirection.buy;
+        signal.direction == SignalDirection.buy;
 
-    final color =
-        isBuy ? kGreen : kRed;
+    final color = isBuy ? kGreen : kRed;
 
     return Container(
       color: Colors.black.withOpacity(.92),
@@ -518,15 +480,12 @@ class _OverlayScreenState extends State<OverlayScreen>
               isBuy ? 'BUY' : 'SELL',
               style: TextStyle(
                 fontSize: 52,
-                fontWeight:
-                    FontWeight.w900,
+                fontWeight: FontWeight.w900,
                 color: color,
                 letterSpacing: 4,
               ),
             ),
-
             const SizedBox(height: 6),
-
             Text(
               '$_selectedTF CANDLE',
               style: const TextStyle(
@@ -535,9 +494,7 @@ class _OverlayScreenState extends State<OverlayScreen>
                 letterSpacing: 2,
               ),
             ),
-
             const SizedBox(height: 10),
-
             Text(
               'CONFIDENCE: ${signal.confidence}%',
               style: const TextStyle(
@@ -545,9 +502,7 @@ class _OverlayScreenState extends State<OverlayScreen>
                 color: Colors.white70,
               ),
             ),
-
             const SizedBox(height: 6),
-
             Text(
               signal.rule,
               textAlign: TextAlign.center,
@@ -556,9 +511,7 @@ class _OverlayScreenState extends State<OverlayScreen>
                 color: Colors.white38,
               ),
             ),
-
             const SizedBox(height: 8),
-
             const Text(
               '✓ SAVED TO HISTORY',
               style: TextStyle(
@@ -585,33 +538,27 @@ class _OverlayScreenState extends State<OverlayScreen>
     return SizedBox(
       height: 48,
       child: ListView.builder(
-        scrollDirection:
-            Axis.horizontal,
-        padding:
-            const EdgeInsets.symmetric(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(
           horizontal: 6,
         ),
         itemCount: labels.length,
         itemBuilder: (_, index) {
           return Container(
-            margin:
-                const EdgeInsets.only(
+            margin: const EdgeInsets.only(
               right: 6,
               top: 4,
               bottom: 4,
             ),
-            padding:
-                const EdgeInsets.symmetric(
+            padding: const EdgeInsets.symmetric(
               horizontal: 12,
             ),
             decoration: BoxDecoration(
-              borderRadius:
-                  BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: kGreen,
               ),
-              color:
-                  kGreen.withOpacity(.07),
+              color: kGreen.withOpacity(.07),
             ),
             child: Column(
               mainAxisAlignment:
@@ -627,14 +574,10 @@ class _OverlayScreenState extends State<OverlayScreen>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  index.isEven
-                      ? 'BULL'
-                      : 'BEAR',
-                  style:
-                      const TextStyle(
+                  index.isEven ? 'BULL' : 'BEAR',
+                  style: const TextStyle(
                     fontSize: 10,
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                     color: kGreen,
                   ),
                 ),
@@ -648,8 +591,7 @@ class _OverlayScreenState extends State<OverlayScreen>
 
   Widget _buildButtons() {
     return Padding(
-      padding:
-          const EdgeInsets.fromLTRB(
+      padding: const EdgeInsets.fromLTRB(
         6,
         0,
         6,
@@ -664,52 +606,41 @@ class _OverlayScreenState extends State<OverlayScreen>
                   '▶ ANALYSE',
                   kGreen,
                   Colors.black,
-                  _state ==
-                              OverlayState.icon ||
-                          _state ==
-                              OverlayState.signal
+                  _state == OverlayState.icon ||
+                          _state == OverlayState.signal
                       ? _reset
                       : null,
                 ),
               ),
-
               const SizedBox(width: 6),
-
               Expanded(
                 child: _btn(
                   '■ STOP',
                   kRed,
                   Colors.white,
-                  _state ==
-                          OverlayState.scanning
+                  _state == OverlayState.scanning
                       ? _stopScan
                       : null,
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 6),
-
           _btn(
             '⚡ GET SIGNAL',
             kGold,
             Colors.black,
-            _state ==
-                    OverlayState.stopped
+            _state == OverlayState.stopped
                 ? _getSignal
                 : null,
           ),
-
           const SizedBox(height: 4),
-
           _btn(
             '↺ RESET',
             Colors.transparent,
             Colors.white38,
             _reset,
-            border:
-                const Color(0xFF152030),
+            border: const Color(0xFF152030),
           ),
         ],
       ),
@@ -726,16 +657,13 @@ class _OverlayScreenState extends State<OverlayScreen>
     return GestureDetector(
       onTap: onTap,
       child: AnimatedOpacity(
-        duration:
-            const Duration(
+        duration: const Duration(
           milliseconds: 200,
         ),
-        opacity:
-            onTap == null ? 0.3 : 1.0,
+        opacity: onTap == null ? 0.3 : 1.0,
         child: Container(
           width: double.infinity,
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             vertical: 13,
           ),
           decoration: BoxDecoration(
@@ -743,8 +671,7 @@ class _OverlayScreenState extends State<OverlayScreen>
                 bg == Colors.transparent
                     ? Colors.transparent
                     : bg,
-            borderRadius:
-                BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: border ?? bg,
             ),
@@ -754,8 +681,7 @@ class _OverlayScreenState extends State<OverlayScreen>
               label,
               style: TextStyle(
                 fontSize: 11,
-                fontWeight:
-                    FontWeight.bold,
+                fontWeight: FontWeight.bold,
                 color: fg,
                 letterSpacing: 1.5,
               ),
@@ -780,8 +706,7 @@ class _OverlayScreenState extends State<OverlayScreen>
       color: const Color(0xFF0A1220),
       padding: const EdgeInsets.all(14),
       child: Column(
-        mainAxisSize:
-            MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
             'SELECT TIMEFRAME',
@@ -789,13 +714,10 @@ class _OverlayScreenState extends State<OverlayScreen>
               fontSize: 12,
               color: Colors.white70,
               letterSpacing: 2,
-              fontWeight:
-                  FontWeight.bold,
+              fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 12),
-
           GridView.builder(
             shrinkWrap: true,
             physics:
@@ -814,31 +736,21 @@ class _OverlayScreenState extends State<OverlayScreen>
                   timeframes[index]['tf']!,
                 ),
                 child: Container(
-                  decoration:
-                      BoxDecoration(
+                  decoration: BoxDecoration(
                     borderRadius:
-                        BorderRadius.circular(
-                      8,
-                    ),
+                        BorderRadius.circular(8),
                     border: Border.all(
-                      color:
-                          const Color(
-                        0xFF152030,
-                      ),
+                      color: const Color(0xFF152030),
                     ),
                     color: kPanel,
                   ),
                   child: Center(
                     child: Text(
-                      timeframes[index]
-                          ['label']!,
-                      style:
-                          const TextStyle(
+                      timeframes[index]['label']!,
+                      style: const TextStyle(
                         fontSize: 12,
-                        fontWeight:
-                            FontWeight.bold,
-                        color:
-                            Colors.white70,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white70,
                         letterSpacing: 1,
                       ),
                     ),
@@ -960,7 +872,7 @@ class _GridPainter extends CustomPainter {
   ) {
     final paint = Paint()
       ..color =
-          kGreen.withOpacity(.04)
+          _OverlayScreenState.kGreen.withOpacity(.04)
       ..strokeWidth = 1;
 
     const step = 28.0;
@@ -998,8 +910,7 @@ class _GridPainter extends CustomPainter {
   }
 }
 
-class _CornerPainter
-    extends CustomPainter {
+class _CornerPainter extends CustomPainter {
   final double thickness;
   final Color color;
   final bool top;
