@@ -1,30 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+
 import 'screens/home_screen.dart';
 import 'screens/overlay_screen.dart';
 
-// Overlay entry point — এটা আলাদা Flutter engine-এ চলে
 @pragma('vm:entry-point')
 void overlayMain() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: OverlayScreen(),
-  ));
+
+  runApp(
+    const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: OverlayScreen(),
+    ),
+  );
 }
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
+
   SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+    ),
   );
+
   runApp(const MrKokoApp());
 }
 
 class MrKokoApp extends StatelessWidget {
   const MrKokoApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
